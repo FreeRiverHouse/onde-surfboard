@@ -1,0 +1,36 @@
+{
+  "name": "surfboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SurfBoard - Onde Command Center Dashboard",
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "build:cf": "npx @cloudflare/next-on-pages && ./scripts/fix-routes.sh",
+    "start": "next start -p 3001",
+    "deploy": "npm run build:cf && npx wrangler pages deploy .vercel/output/static --project-name=onde-surf"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@auth/core": "^0.41.0",
+    "@opennextjs/cloudflare": "^1.14.10",
+    "lucide-react": "^0.303.0",
+    "next": "14.2.35",
+    "next-auth": "^5.0.0-beta.30",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.16",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "autoprefixer": "^10",
+    "postcss": "^8",
+    "tailwindcss": "^3",
+    "typescript": "^5",
+    "wrangler": "^4.59.3"
+  },
+  "optionalDependencies": {
+    "@next/swc-darwin-arm64": "14.2"
+  }
+}
