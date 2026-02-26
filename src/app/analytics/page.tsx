@@ -24,9 +24,17 @@ interface OSEntry { os: string; views: number }
 interface MetricsData {
   summary: { pageViews30d: number; pageViews7d: number; visits30d?: number; visits7d?: number }
   daily: DailyPoint[]
+  daily7d: DailyPoint[]
+  daily30d: DailyPoint[]
   topPages: PageEntry[]
+  topPages7d: PageEntry[]
+  topPages30d: PageEntry[]
   topReferrers: ReferrerEntry[]
+  topReferrers7d: ReferrerEntry[]
+  topReferrers30d: ReferrerEntry[]
   devices: DeviceEntry[]
+  devices7d: DeviceEntry[]
+  devices30d: DeviceEntry[]
   browsers: BrowserEntry[]
   countries: CountryEntry[]
   operatingSystems: OSEntry[]
@@ -72,7 +80,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     async function fetchMetrics() {
       try {
-        const response = await fetch('/api/metrics')
+        const response = await fetch('/api/metrics', { cache: 'no-store' })
         if (!response.ok) throw new Error('Failed to fetch metrics')
         const data = await response.json()
         setMetrics(data)
@@ -85,15 +93,26 @@ export default function AnalyticsPage() {
     fetchMetrics()
   }, [])
 
+  // Use range-specific data from API (not client-side slice)
   const filteredDaily = useMemo(() => {
-    if (!metrics?.daily) return []
-    const days = timeRange === '7d' ? 7 : 30
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - days)
-    const cutoffStr = cutoff.toISOString().slice(0, 10)
-    return metrics.daily
-      .filter(d => d.date >= cutoffStr)
-      .sort((a, b) => a.date.localeCompare(b.date))
+    if (!metrics) return []
+    const src = timeRange === '7d' ? (metrics.daily7d || metrics.daily) : (metrics.daily30d || metrics.daily)
+    return [...src].sort((a, b) => a.date.localeCompare(b.date))
+  }, [metrics, timeRange])
+
+  const activeTopPages = useMemo(() => {
+    if (!metrics) return []
+    return timeRange === '7d' ? (metrics.topPages7d || metrics.topPages) : (metrics.topPages30d || metrics.topPages)
+  }, [metrics, timeRange])
+
+  const activeTopReferrers = useMemo(() => {
+    if (!metrics) return []
+    return timeRange === '7d' ? (metrics.topReferrers7d || metrics.topReferrers) : (metrics.topReferrers30d || metrics.topReferrers)
+  }, [metrics, timeRange])
+
+  const activeDevices = useMemo(() => {
+    if (!metrics) return []
+    return timeRange === '7d' ? (metrics.devices7d || metrics.devices) : (metrics.devices30d || metrics.devices)
   }, [metrics, timeRange])
 
   const summaryStats = useMemo(() => {
@@ -106,13 +125,13 @@ export default function AnalyticsPage() {
       ? filteredDaily.reduce((max, d) => d.views > max.views ? d : max, filteredDaily[0])
       : null
     const totalVisits = timeRange === '7d' ? (metrics.summary.visits7d ?? 0) : (metrics.summary.visits30d ?? 0)
-    const mobileViews = metrics.devices.find(d => d.type === 'mobile')?.views ?? 0
-    const desktopViews = metrics.devices.find(d => d.type === 'desktop')?.views ?? 0
+    const mobileViews = activeDevices.find(d => d.type === 'mobile')?.views ?? 0
+    const desktopViews = activeDevices.find(d => d.type === 'desktop')?.views ?? 0
     const mobilePercent = totalViews > 0 ? Math.round((mobileViews / totalViews) * 100) : 0
     const pagesPerVisit = totalVisits > 0 ? (totalViews / totalVisits).toFixed(1) : '0'
 
     return { totalViews, totalVisits, avgPerDay, peakDay, mobileViews, desktopViews, mobilePercent, pagesPerVisit }
-  }, [metrics, timeRange, filteredDaily])
+  }, [metrics, timeRange, filteredDaily, activeDevices])
 
   const hasData = metrics?.hasData ?? false
 
@@ -239,14 +258,14 @@ export default function AnalyticsPage() {
               {selectedMetric === 'unique_visitors' && (
                 <DailyBarChart data={filteredDaily.map(d => ({ ...d, views: d.visits ?? 0 }))} color="#10b981" label="visitors" />
               )}
-              {selectedMetric === 'visitors_device' && metrics && (
-                <DeviceBreakdownChart devices={metrics.devices} total={summaryStats?.totalViews ?? 0} />
+              {selectedMetric === 'visitors_device' && (
+                <DeviceBreakdownChart devices={activeDevices} total={summaryStats?.totalViews ?? 0} />
               )}
               {selectedMetric === 'pages_per_day' && (
                 <DailyLineChart data={filteredDaily} />
               )}
-              {selectedMetric === 'top_page_trend' && metrics && (
-                <TopPagesChart pages={metrics.topPages} />
+              {selectedMetric === 'top_page_trend' && (
+                <TopPagesChart pages={activeTopPages} />
               )}
             </div>
           </GlowCard>
@@ -259,15 +278,15 @@ export default function AnalyticsPage() {
                 <h3 className="text-sm font-semibold mb-4 flex items-center gap-2 text-white/80">
                   <span>📄</span> Top Pages
                 </h3>
-                {metrics?.topPages && metrics.topPages.length > 0 ? (
+                {activeTopPages.length > 0 ? (
                   <div className="space-y-2.5">
-                    {metrics.topPages.slice(0, 10).map((page, i) => (
+                    {activeTopPages.slice(0, 10).map((page, i) => (
                       <BarRow
                         key={i}
                         rank={i + 1}
                         label={page.path}
                         value={page.views}
-                        maxValue={metrics.topPages[0].views}
+                        maxValue={activeTopPages[0].views}
                         color="cyan"
                       />
                     ))}
@@ -284,15 +303,15 @@ export default function AnalyticsPage() {
                 <h3 className="text-sm font-semibold mb-4 flex items-center gap-2 text-white/80">
                   <span>🔗</span> Top Referrers
                 </h3>
-                {metrics?.topReferrers && metrics.topReferrers.length > 0 ? (
+                {activeTopReferrers.length > 0 ? (
                   <div className="space-y-2.5">
-                    {metrics.topReferrers.slice(0, 10).map((ref, i) => (
+                    {activeTopReferrers.slice(0, 10).map((ref, i) => (
                       <BarRow
                         key={i}
                         rank={i + 1}
                         label={ref.referrer || '(direct)'}
                         value={ref.views}
-                        maxValue={metrics.topReferrers[0].views}
+                        maxValue={activeTopReferrers[0].views}
                         color="purple"
                       />
                     ))}

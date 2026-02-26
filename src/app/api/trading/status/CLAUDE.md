@@ -7,6 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #1383 | 12:55 PM | ⚖️ | Architectural Decision: Self-Contained Kalshi Dashboard with Surfboard Iframe Wrapper | ~1033 |
-| #1353 | 12:22 PM | 🔵 | Betting Dashboard Architecture and Data Flow Analysis | ~428 |
+| #1289 | 11:42 AM | 🔵 | Surfboard Dashboard Hybrid Architecture Reading from SSD and Python API | ~488 |
 </claude-mem-context>
