@@ -1,2 +1,4 @@
 .vercel/output
 .wrangler/
+node_modules
+.next
